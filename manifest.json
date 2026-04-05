@@ -2,6 +2,8 @@
   "name": "Ritual",
   "short_name": "Ritual",
   "description": "Daily supplement and habit tracker",
+  "start_url": "/Ritual-/index.html",
+  "scope": "/Ritual-/",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#f5f0e8",
