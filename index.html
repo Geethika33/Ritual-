@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ritual">
+<meta name="theme-color" content="#1a1814">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Ritual</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Syne+Mono&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --bg: #f5f0e8;
+  --ink: #1a1814;
+  --muted: #9a9488;
+  --border: #e0dbd0;
+  --accent: #c85a2a;
+  --surface: #eee9df;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: 100px;
+  overscroll-behavior: none;
+}
+
+/* STATUS BAR SAFE AREA */
+header {
+  padding: env(safe-area-inset-top, 12px) 20px 0;
+  padding-top: max(env(safe-area-inset-top), 12px);
+}
+
+/* HEADER */
+.header-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 0 14px;
+  border-bottom: 2px solid var(--ink);
+}
+
+h1 {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  line-height: 1;
+}
+
+.header-right { text-align: right; }
+
+.date-str {
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.notif-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: 1.5px solid var(--ink);
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  background: transparent;
+  color: var(--ink);
+  transition: all 0.2s;
+}
+
+.notif-pill.on {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.notif-pill .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.notif-pill.on .dot { background: #6ecf8a; }
+
+/* PROGRESS */
+.progress-wrap {
+  padding: 12px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.progress-top {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
+.progress-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--ink);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* PHASE TABS */
+.phase-tabs {
+  display: flex;
+  overflow-x: auto;
+  padding: 10px 20px;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.phase-tabs::-webkit-scrollbar { display: none; }
+
+.phase-tab {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--muted);
+  white-space: nowrap;
+  position: relative;
+}
+
+.phase-tab.active {
+  border-color: var(--ink);
+  color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.phase-tab .badge {
+  position: absolute;
+  top: -5px; right: -5px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Syne Mono', monospace;
+}
+
+/* PHASE VIEW */
+.phase-view { display: none; padding: 0 20px; }
+.phase-view.active { display: block; }
+
+.phase-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 0 12px;
+}
+
+.phase-color-bar {
+  width: 4px;
+  height: 36px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.phase-title-block {}
+.phase-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.phase-subtitle {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.06em;
+}
+
+/* ITEM CARDS */
+.item-card {
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  transition: all 0.2s;
+  cursor: pointer;
+  user-select: none;
+}
+
+.item-card:active { transform: scale(0.98); }
+
+.item-card.done {
+  border-color: var(--ink);
+  background: var(--ink);
+}
+
+.item-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+}
+
+.check {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-size: 11px;
+}
+
+.item-card.done .check {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.item-info { flex: 1; }
+
+.item-name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  transition: all 0.2s;
+}
+
+.item-card.done .item-name {
+  color: rgba(245,240,232,0.45);
+  text-decoration: line-through;
+}
+
+.item-when {
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+  transition: all 0.2s;
+}
+
+.item-card.done .item-when { color: rgba(245,240,232,0.2); }
+
+.expand-btn {
+  font-size: 16px;
+  color: var(--border);
+  transition: all 0.2s;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+.item-card.done .expand-btn { color: rgba(245,240,232,0.2); }
+.item-card.expanded .expand-btn { transform: rotate(180deg); color: var(--muted); }
+
+.item-why {
+  display: none;
+  padding: 0 14px 14px 50px;
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.item-card.expanded .item-why { display: block; }
+.item-card.done .item-why { color: rgba(245,240,232,0.25); border-color: rgba(245,240,232,0.1); }
+
+/* STREAK */
+.streak-section {
+  padding: 20px 20px 0;
+}
+
+.streak-label {
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.streak-grid {
+  display: flex;
+  gap: 6px;
+}
+
+.streak-day {
+  flex: 1;
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 8px 4px;
+  text-align: center;
+  border: 1.5px solid transparent;
+}
+
+.streak-day.today { border-color: var(--ink); }
+.streak-day.full { background: var(--ink); }
+.streak-day.partial { background: var(--surface); border-color: var(--muted); }
+
+.streak-day-label {
+  font-family: 'Syne Mono', monospace;
+  font-size: 8px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.streak-day.full .streak-day-label { color: rgba(245,240,232,0.4); }
+
+.streak-day-pip {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  margin: 0 auto;
+}
+
+.streak-day.full .streak-day-pip { background: var(--accent); }
+.streak-day.partial .streak-day-pip { background: var(--muted); }
+.streak-day.today .streak-day-pip { background: var(--ink); }
+
+/* NOTIFICATION SETUP CARD */
+.setup-card {
+  margin: 12px 20px;
+  background: #fff8e8;
+  border: 1.5px solid #e8d090;
+  border-radius: 10px;
+  padding: 14px;
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.setup-card h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.setup-card button {
+  margin-top: 10px;
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+/* INSTALL BANNER */
+.install-banner {
+  margin: 0 20px 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.install-banner button {
+  flex-shrink: 0;
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-family: 'Syne Mono', monospace;
+  font-size: 9px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+}
+
+/* BOTTOM NAV */
+.bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg);
+  border-top: 2px solid var(--ink);
+  padding: 10px 20px;
+  padding-bottom: max(env(safe-area-inset-bottom), 10px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 50;
+}
+
+.bottom-count {
+  font-family: 'Syne Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.bottom-count span {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.reset-btn {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  font-family: 'Syne Mono', monospace;
+  font-size: 10px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  transition: all 0.2s;
+}
+
+.reset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-80px);
+  background: var(--ink);
+  color: var(--bg);
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-family: 'Syne Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  transition: transform 0.3s ease;
+  z-index: 999;
+  white-space: nowrap;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>Ritual</h1>
+    </div>
+    <div class="header-right">
+      <div class="date-str" id="dateStr"></div>
+      <button class="notif-pill" id="notifPill" onclick="handleNotifToggle()">
+        <div class="dot"></div>
+        <span id="notifLabel">Reminders off</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-top">
+    <span id="progressLabel">0 of 14 done</span>
+    <span id="progressPct">0%</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+</div>
+
+<div id="setupCard"></div>
+<div id="installBanner"></div>
+
+<div class="phase-tabs" id="phaseTabs"></div>
+
+<div id="phaseViews"></div>
+
+<div class="streak-section">
+  <div class="streak-label">7-day streak</div>
+  <div class="streak-grid" id="streakGrid"></div>
+</div>
+
+<div class="bottom-bar">
+  <div class="bottom-count">Today: <span id="bottomCount">0/14</span></div>
+  <button class="reset-btn" onclick="resetToday()">↺ reset today</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const PHASES = [
+  {
+    id: 'morning', label: 'Morning', time: '06:30', color: '#e8734a',
+    subtitle: 'wake up → empty stomach',
+    items: [
+      { id: 'acv', name: 'ACV in water', when: 'first thing, empty stomach', why: 'Blunts morning glucose spike. Most effective on an empty gut before anything else.' },
+      { id: 'ferrous', name: 'Ferrous Ascorbate', when: 'empty stomach, wait 30 min before eating', why: 'Iron absorbs best fasted. Already has Vit C — don\'t add extra. Avoid calcium within 2 hrs.' },
+      { id: 'neurobion', name: 'Neurobion (B-complex)', when: 'with breakfast', why: 'B vitamins fuel energy metabolism. Morning = won\'t disrupt sleep. Must take with food.' },
+      { id: 'blackseed', name: 'Black Seed Oil ½ tsp', when: 'with breakfast', why: 'Thymoquinone is fat-soluble — needs food with fat to absorb properly.' },
+      { id: 'vite', name: 'Vitamin E', when: 'with breakfast', why: 'Fat-soluble. Needs dietary fat. Morning meal is the easiest anchor for this.' },
+    ]
+  },
+  {
+    id: 'pregym', label: 'Pre-Gym', time: '07:00', color: '#4a8c6e',
+    subtitle: '20–30 min before training',
+    items: [
+      { id: 'matcha', name: 'Matcha', when: '20–30 min before gym', why: 'Caffeine + L-theanine = clean focus without jitteriness or cortisol spike. Perfect pre-lift.' },
+      { id: 'dateladoo_pre', name: 'Date Ladoo 1–2 pcs', when: 'right before leaving', why: 'Fast carbs (dates) for workout energy + slow release from nuts. Your homemade pre-workout.' },
+    ]
+  },
+  {
+    id: 'postgym', label: 'Post-Gym', time: '08:30', color: '#4a6e8c',
+    subtitle: 'within 45 min of finishing',
+    items: [
+      { id: 'whey', name: 'Whey + Chia shake', when: 'within 45 min post-training', why: 'Protein synthesis window. Chia adds omega-3s + ~5g protein. Mix or blend in.' },
+      { id: 'vitc_zinc', name: 'Vit C + Zinc', when: 'with shake or food', why: 'Zinc supports muscle repair + testosterone. Vit C aids recovery. Keep 8+ hrs from iron dose.' },
+    ]
+  },
+  {
+    id: 'noon', label: 'Afternoon', time: '13:00', color: '#c9982a',
+    subtitle: 'lunch + afternoon at work',
+    items: [
+      { id: 'acv_lunch', name: 'ACV before lunch', when: 'optional — before heavy PG meal', why: 'Useful if lunch is heavy on rice/roti. Skip if morning dose + light meal.' },
+      { id: 'dateladoo_snack', name: 'Date Ladoo snack', when: '3–4 PM energy dip', why: 'Beats biscuits or chai. Dates + nuts = sustained release. Carry 2 in a small box.' },
+    ]
+  },
+  {
+    id: 'night', label: 'Night', time: '20:30', color: '#6e4a8c',
+    subtitle: 'dinner → sleep by 10:30',
+    items: [
+      { id: 'shelcal', name: 'Shelcal (Calcium)', when: 'with dinner', why: 'Calcium blocks iron absorption — must stay far from morning dose. Night timing is ideal.' },
+      { id: 'chia_night', name: 'Chia in curd/water', when: 'if skipped in morning shake', why: 'Fibre feeds gut bacteria overnight. Don\'t double-dose if you had it in shake.' },
+      { id: 'sleep_prep', name: 'Phone down, lights dim', when: '9:30 PM → sleep by 10:30', why: 'You\'re training mornings. Recovery + protein synthesis happen during sleep. Non-negotiable.' },
+    ]
+  }
+];
+
+const ALL_ITEMS = PHASES.flatMap(p => p.items);
+const TOTAL = ALL_ITEMS.length;
+
+// ─── STORAGE ────────────────────────────────────────────────────────────────
+
+const todayKey = () => 'ritual_' + new Date().toISOString().slice(0, 10);
+const streakKey = 'ritual_streak';
+
+function getChecked() {
+  try { return JSON.parse(localStorage.getItem(todayKey()) || '[]'); } catch { return []; }
+}
+
+function saveChecked(arr) {
+  localStorage.setItem(todayKey(), JSON.stringify(arr));
+  updateStreak(arr.length);
+}
+
+function updateStreak(count) {
+  const today = new Date().toISOString().slice(0, 10);
+  const streak = getStreak();
+  if (count === TOTAL) streak[today] = 'full';
+  else if (count > 0) streak[today] = 'partial';
+  else delete streak[today];
+  localStorage.setItem(streakKey, JSON.stringify(streak));
+}
+
+function getStreak() {
+  try { return JSON.parse(localStorage.getItem(streakKey) || '{}'); } catch { return {}; }
+}
+
+// ─── RENDER ─────────────────────────────────────────────────────────────────
+
+let activePhase = 'morning';
+
+function renderAll() {
+  const checked = getChecked();
+  renderTabs(checked);
+  renderViews(checked);
+  renderProgress(checked);
+  renderStreak();
+  renderSetupCard();
+}
+
+function renderTabs(checked) {
+  const container = document.getElementById('phaseTabs');
+  container.innerHTML = PHASES.map(p => {
+    const undone = p.items.filter(i => !checked.includes(i.id)).length;
+    return `
+      <button class="phase-tab ${p.id === activePhase ? 'active' : ''}" onclick="switchPhase('${p.id}')">
+        ${p.label}
+        ${undone > 0 && p.id !== activePhase ? `<div class="badge">${undone}</div>` : ''}
+      </button>
+    `;
+  }).join('');
+}
+
+function renderViews(checked) {
+  const container = document.getElementById('phaseViews');
+  container.innerHTML = PHASES.map(p => `
+    <div class="phase-view ${p.id === activePhase ? 'active' : ''}" id="view-${p.id}">
+      <div class="phase-header">
+        <div class="phase-color-bar" style="background:${p.color}"></div>
+        <div class="phase-title-block">
+          <div class="phase-title">${p.label} <span style="font-family:'Syne Mono',monospace;font-size:11px;font-weight:400;color:var(--muted);letter-spacing:0.04em">${p.time}</span></div>
+          <div class="phase-subtitle">${p.subtitle}</div>
+        </div>
+      </div>
+      ${p.items.map(item => `
+        <div class="item-card ${checked.includes(item.id) ? 'done' : ''}" id="card-${item.id}" onclick="handleCardTap(event, '${item.id}')">
+          <div class="item-main">
+            <div class="check">${checked.includes(item.id) ? '✓' : ''}</div>
+            <div class="item-info">
+              <div class="item-name">${item.name}</div>
+              <div class="item-when">${item.when}</div>
+            </div>
+            <div class="expand-btn" id="expand-${item.id}">▾</div>
+          </div>
+          <div class="item-why">${item.why}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function renderProgress(checked) {
+  const n = checked.length;
+  const pct = Math.round(n / TOTAL * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = `${n} of ${TOTAL} done`;
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('bottomCount').textContent = `${n}/${TOTAL}`;
+}
+
+function renderStreak() {
+  const streak = getStreak();
+  const grid = document.getElementById('streakGrid');
+  const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+  const today = new Date();
+  grid.innerHTML = '';
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const s = streak[key] || '';
+    const isToday = i === 0;
+    const el = document.createElement('div');
+    el.className = `streak-day ${s} ${isToday ? 'today' : ''}`;
+    el.innerHTML = `<div class="streak-day-label">${days[d.getDay()]}</div><div class="streak-day-pip"></div>`;
+    grid.appendChild(el);
+  }
+}
+
+function renderSetupCard() {
+  const card = document.getElementById('setupCard');
+  if (!('Notification' in window)) {
+    card.innerHTML = '';
+    return;
+  }
+  if (Notification.permission === 'default') {
+    card.innerHTML = `
+      <div class="setup-card">
+        <h3>Enable reminders</h3>
+        Allow notifications so Ritual can ping you at the right time — morning supplements, pre-gym, post-gym, afternoon, night.
+        <br>
+        <button onclick="handleNotifToggle()">Allow notifications →</button>
+      </div>
+    `;
+  } else {
+    card.innerHTML = '';
+  }
+}
+
+// ─── INTERACTIONS ────────────────────────────────────────────────────────────
+
+let expandState = {};
+
+function handleCardTap(e, id) {
+  // Check if they tapped the expand button
+  const expandBtn = document.getElementById('expand-' + id);
+  const card = document.getElementById('card-' + id);
+
+  if (e.target === expandBtn || expandBtn.contains(e.target)) {
+    expandState[id] = !expandState[id];
+    card.classList.toggle('expanded', expandState[id]);
+    return;
+  }
+
+  // Toggle check
+  const checked = getChecked();
+  const idx = checked.indexOf(id);
+  if (idx === -1) {
+    checked.push(id);
+    showToast('✓ done');
+  } else {
+    checked.splice(idx, 1);
+  }
+  saveChecked(checked);
+  renderAll();
+}
+
+function switchPhase(id) {
+  activePhase = id;
+  renderAll();
+  // Scroll tabs to show active
+  const btn = document.querySelector(`.phase-tab[onclick="switchPhase('${id}')"]`);
+  btn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+
+function resetToday() {
+  if (confirm('Reset today\'s checklist?')) {
+    saveChecked([]);
+    expandState = {};
+    renderAll();
+  }
+}
+
+// ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
+
+let notifTimers = [];
+
+function scheduleNotifications() {
+  notifTimers.forEach(clearTimeout);
+  notifTimers = [];
+  if (Notification.permission !== 'granted') return;
+
+  PHASES.forEach(phase => {
+    const delay = msUntil(phase.time);
+    const t = setTimeout(() => {
+      firePhaseNotif(phase);
+      // reschedule 24h later
+      const daily = setTimeout(() => firePhaseNotif(phase), 24 * 60 * 60 * 1000);
+      notifTimers.push(daily);
+    }, delay);
+    notifTimers.push(t);
+  });
+}
+
+function msUntil(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  const now = new Date();
+  const target = new Date(now);
+  target.setHours(h, m, 0, 0);
+  if (target <= now) target.setDate(target.getDate() + 1);
+  return target - now;
+}
+
+function firePhaseNotif(phase) {
+  const checked = getChecked();
+  const undone = phase.items.filter(i => !checked.includes(i.id));
+  if (undone.length === 0) return;
+
+  const body = undone.map(i => '• ' + i.name).join('\n');
+  if (Notification.permission === 'granted') {
+    const n = new Notification(`Ritual — ${phase.label}`, {
+      body,
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      tag: 'ritual-' + phase.id,
+      renotify: true,
+      requireInteraction: false,
+    });
+    n.onclick = () => { window.focus(); n.close(); };
+  }
+}
+
+async function handleNotifToggle() {
+  if (!('Notification' in window)) {
+    showToast('Notifications not supported in this browser');
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    showToast('Reminders already on ✓');
+    return;
+  }
+
+  const result = await Notification.requestPermission();
+  if (result === 'granted') {
+    document.getElementById('notifPill').classList.add('on');
+    document.getElementById('notifLabel').textContent = 'Reminders on';
+    scheduleNotifications();
+    renderSetupCard();
+    showToast('Reminders enabled ✓');
+  } else {
+    showToast('Notifications blocked — check browser settings');
+  }
+}
+
+function updateNotifPill() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    document.getElementById('notifPill').classList.add('on');
+    document.getElementById('notifLabel').textContent = 'Reminders on';
+  }
+}
+
+// ─── TOAST ───────────────────────────────────────────────────────────────────
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ─── SERVICE WORKER ──────────────────────────────────────────────────────────
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    console.log('SW registered', reg.scope);
+  }).catch(err => console.log('SW error', err));
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+
+// Date display
+const now = new Date();
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+document.getElementById('dateStr').textContent =
+  DAYS[now.getDay()] + ' · ' + now.getDate() + ' ' + MONTHS[now.getMonth()];
+
+// Set active phase based on current time
+function autoPhase() {
+  const hhmm = now.getHours() * 60 + now.getMinutes();
+  const times = PHASES.map(p => { const [h,m] = p.time.split(':').map(Number); return h*60+m; });
+  let current = PHASES[0].id;
+  for (let i = 0; i < times.length; i++) {
+    if (hhmm >= times[i]) current = PHASES[i].id;
+  }
+  activePhase = current;
+}
+
+autoPhase();
+renderAll();
+updateNotifPill();
+if (Notification.permission === 'granted') scheduleNotifications();
+
+// Refresh every minute (for live phase detection)
+setInterval(() => {
+  autoPhase();
+  renderAll();
+}, 60000);
+
+// PWA install prompt
+let deferredInstallPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const banner = document.getElementById('installBanner');
+  banner.innerHTML = `
+    <div class="install-banner">
+      <div>Add Ritual to your home screen for the full app experience</div>
+      <button onclick="installPWA()">Install</button>
+    </div>
+  `;
+});
+
+function installPWA() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(choice => {
+    if (choice.outcome === 'accepted') {
+      document.getElementById('installBanner').innerHTML = '';
+      showToast('Installing Ritual ✓');
+    }
+    deferredInstallPrompt = null;
+  });
+}
+</script>
+</body>
+</html>
